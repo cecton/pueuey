@@ -1,6 +1,8 @@
 import psycopg2
 import select
 
+__all__ = ['Conn', 'Transaction']
+
 
 class Transaction(object):
     def __init__(self, curs):
