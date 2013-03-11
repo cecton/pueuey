@@ -1,7 +1,8 @@
 import os
 import threading
+
 from .common import Notifier, ConnBaseTest
-from queue_classic import Conn
+from pueuey import Conn
 
 __all__ = ['ConnTest']
 
@@ -17,12 +18,12 @@ class ConnTest(ConnBaseTest):
 ["name_%02d" % i, "method_%02d" % i])
         for i in range(self.tries):
             curs = self.conn.execute(
-"SELECT * FROM %s" % self.table
+"SELECT q_name, method FROM %s" % self.table
 +" WHERE q_name = %s AND method = %s",
 ["name_%02d" % i, "method_%02d" % i])
-            for row in curs:
-                self.assertEqual(row.q_name, "name_%02d" % i)
-                self.assertEqual(row.method, "method_%02d" % i)
+            for q_name, method in curs:
+                self.assertEqual(q_name, "name_%02d" % i)
+                self.assertEqual(method, "method_%02d" % i)
 
     def test_30_transaction_succeed(self):
         with self.conn.transaction() as curs:
@@ -31,12 +32,12 @@ class ConnTest(ConnBaseTest):
 +" (q_name, method) VALUES (%s, %s)",
 ["name_transaction", "method_transaction"])
         curs = self.conn.execute(
-"SELECT * FROM %s" % self.table
+"SELECT q_name, method FROM %s" % self.table
 +" WHERE q_name = %s AND method = %s",
 ["name_transaction", "method_transaction"])
-        for row in curs:
-            self.assertEqual(row.q_name, "name_transaction")
-            self.assertEqual(row.method, "method_transaction")
+        for q_name, method in curs:
+            self.assertEqual(q_name, "name_transaction")
+            self.assertEqual(method, "method_transaction")
 
     def test_35_transaction_failure(self):
         try:

@@ -2,7 +2,8 @@ import os
 import threading
 from time import sleep
 import unittest
-from queue_classic import Conn, Queue
+
+from pueuey import Conn, Queue
 
 __all__ = ['Notifier', 'ConnBaseTest']
 

@@ -1,7 +1,8 @@
 import os
 import threading
 import psycopg2.extras
-from queue_classic import Queue, Conn
+
+from pueuey import Queue, Conn
 from .common import Notifier, ConnBaseTest
 
 

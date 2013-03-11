@@ -22,11 +22,10 @@ class Conn(object):
         if len(args) == 1 and not kwargs and \
                 isinstance(args[0], psycopg2.extensions.connection):
             self.conn = args[0]
-            self.__setup__()
         else:
             self.conn = psycopg2.connect(*args, **kwargs)
             self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-            self.curs = self.cursor(**cursor_kwargs)
+        self.curs = self.cursor(**cursor_kwargs)
 
     @property
     def dsn(self):
