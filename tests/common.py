@@ -3,7 +3,7 @@ import threading
 from time import sleep
 import unittest
 
-from pueuey import Conn, Queue
+from pueuey import ConnAdapter, Queue
 
 __all__ = ['Notifier', 'ConnBaseTest']
 
@@ -26,24 +26,22 @@ class ConnBaseTest(unittest.TestCase):
     q_name = 'default'
     base_dsn = {}
 
-    def Conn(self, *args, **kwargs):
-        return Conn(dbname=self.dbname, *args, **dict(self.base_dsn, **kwargs))
+    def connect(self, **kwargs):
+        return ConnAdapter(**dict(kwargs, database=self.dbname))
 
     @classmethod
     def setUpClass(cls):
-        cls.conn = Conn(dbname="postgres", **cls.base_dsn)
+        cls.conn = ConnAdapter(dbname="postgres", **cls.base_dsn)
         cls.conn.execute('CREATE DATABASE "%s";' % cls.dbname)
-        cls.db_conn = Conn(dbname=cls.dbname, **cls.base_dsn)
+        cls.db_conn = ConnAdapter(dbname=cls.dbname, **cls.base_dsn)
         curs = cls.db_conn.execute("SELECT 1 FROM pg_language WHERE lanname = 'plpgsql';")
         if not curs.fetchone():
             cls.db_conn.execute("CREATE LANGUAGE plpgsql;")
 
     def setUp(self):
         self.db_queue = Queue(self.db_conn, self.table, self.q_name)
-        self.db_queue.create("""\
-  method varchar(255),
-  args text""")
-        self.conn = Conn(dbname=self.dbname, **self.base_dsn)
+        self.db_queue.create("method varchar(255), args text")
+        self.conn = ConnAdapter(dbname=self.dbname, **self.base_dsn)
 
     def tearDown(self):
         self.conn.disconnect()

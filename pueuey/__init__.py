@@ -1,3 +1,2 @@
-from conn import Conn
-from queries import Queries
+from conn_adapter import ConnAdapter
 from queue import Queue
