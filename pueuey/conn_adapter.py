@@ -28,14 +28,14 @@ class ConnAdapter(psycopg2._psycopg.connection):
         curs.execute(*args)
         return curs
 
-    def notify(self, chan):
-        return self.execute('NOTIFY "%s"' % chan)
-
-    def listen(self, chan):
-        return self.execute('LISTEN "%s"' % chan)
-
-    def unlisten(self, chan):
-        return self.execute('UNLISTEN "%s"' % chan)
+    def wait(self, time, *channels):
+        listen_cmds = ['LISTEN "%s"' % c for c in channels]
+        self.execute(';'.join(listen_cmds))
+        channel = self.__wait_for_notify(time)
+        unlisten_cmds = ['UNLISTEN "%s"' % c for c in channels]
+        self.execute(';'.join(unlisten_cmds))
+        self.__drain_notify()
+        return channel
 
     def __drain_notify(self):
         notifies = list(self.notifies)

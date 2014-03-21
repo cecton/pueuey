@@ -26,30 +26,24 @@ class ConnTest(ConnBaseTest):
 
     def test_40_wait_for_notify(self):
         for try_index in range(self.tries):
-            self.conn.listen('test_chan')
-            notifier = Notifier(self.connect(), 'test_chan', 0.1)
+            notifier = Notifier(self._connect(), 'test_chan', 0.1)
             notifier.start()
-            got = self.conn.wait_for_notify(0.5)
+            got = self.conn.wait(0.5, 'test_chan')
+            self.assertIsNotNone(got)
             self.assertEqual(got.channel, 'test_chan')
-            rest = self.conn.drain_notify()
-            self.assertTrue(len(rest) == 0)
-            self.conn.unlisten('test_chan')
+            notifier.join()
 
     def test_45_wait_for_notify_something_else(self):
         for try_index in range(self.tries):
-            self.conn.listen('test_chan')
-            notifier = Notifier(self.connect(), 'something_else', 0.1)
+            notifier = Notifier(self._connect(), 'something_else', 0.1)
             notifier.start()
-            got = self.conn.wait_for_notify(0.5)
-            self.assertTrue(got is None)
-            rest = self.conn.drain_notify()
-            self.assertTrue(len(rest) == 0)
-            self.conn.unlisten('test_chan')
+            got = self.conn.wait(0.5, 'test_chan')
+            self.assertIsNone(got)
+            notifier.join()
 
-    def test_50_wait_for_notify_without_listen(self):
-        notifier = Notifier(self.conn, 'something', 2)
+    def test_50_wait_not_long_enough(self):
+        notifier = Notifier(self.conn, 'something', 1)
         notifier.start()
-        got = self.conn.wait_for_notify(5)
-        self.assertTrue(got is None)
-        rest = self.conn.drain_notify()
-        self.assertTrue(len(rest) == 0)
+        got = self.conn.wait(0.1, 'something')
+        self.assertIsNone(got)
+        notifier.join()
