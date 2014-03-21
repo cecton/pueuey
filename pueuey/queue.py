@@ -50,9 +50,3 @@ class Queue(object):
         curs.execute('SELECT COUNT(*) FROM "%s" WHERE q_name = %%s'
                      % self.table, self.name)
         return curs.fetchone()[0]
-
-    def create(self, columns):
-        return setup.create(self.conn, self.table, columns)
-
-    def drop(self):
-        return setup.drop(self.conn, self.table)

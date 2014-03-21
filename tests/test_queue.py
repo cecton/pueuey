@@ -13,13 +13,11 @@ class ConcurrentClient(threading.Thread):
         super(ConcurrentClient, self).__init__()
 
     def connect(self):
-        self.queue = Queue(
-            ConnAdapter(self.base_queue.conn.dsn,
+        self.queue = \
+            Queue(ConnAdapter(self.base_queue.conn.dsn,
                 cursor_factory=psycopg2.extras.RealDictCursor),
             self.base_queue.table,
-            self.base_queue.name,
-            self.base_queue.chan is not None)
-
+            self.base_queue.name)
 
 class ConcurrentLock(ConcurrentClient):
     lock = threading.RLock()
@@ -44,7 +42,6 @@ class ConcurrentLock(ConcurrentClient):
             except ValueError:
                 self.error = "Expected to find %s, in %s" % (got, self.stack)
 
-
 class ConcurrentEnqueue(ConcurrentClient):
     def __init__(self, queue, job):
         self.job = job
@@ -62,9 +59,7 @@ class QueueTest(ConnBaseTest):
     max_clients = 10
     tries = 100
     queues = 10
-    base_dsn = {
-        'cursor_factory': psycopg2.extras.RealDictCursor,
-    }
+    cursor_factory = psycopg2.extras.RealDictCursor
 
     def test_20_main_queue(self):
         for i in range(self.tries):
@@ -83,12 +78,11 @@ class QueueTest(ConnBaseTest):
     def test_25_main_queue_multiple_connections(self):
         queues = []
         for i in range(self.queues):
-            queues.append( Queue(
-                ConnAdapter(self.db_queue.conn.dsn,
+            queues.append(
+                Queue(ConnAdapter(self.db_queue.conn.dsn,
                     cursor_factory=psycopg2.extras.RealDictCursor),
-                self.db_queue.table,
-                self.db_queue.name,
-                self.db_queue.chan is not None) )
+                self.db_queue.table, self.db_queue.name)
+            )
 
         stack = []
         for i in range(self.tries):
@@ -116,12 +110,11 @@ class QueueTest(ConnBaseTest):
         queues = []
         for i in range(self.queues):
             name = "queue_%03d" % i
-            queues.append( Queue(
-                ConnAdapter(self.db_queue.conn.dsn,
+            queues.append(
+                Queue(ConnAdapter(self.db_queue.conn.dsn,
                     cursor_factory=psycopg2.extras.RealDictCursor),
-                self.db_queue.table,
-                name,
-                self.db_queue.chan is not None) )
+                self.db_queue.table, name)
+            )
 
         stack = []
         for i in range(self.tries):
@@ -185,12 +178,11 @@ class QueueTest(ConnBaseTest):
         stacks = {}
         for i in range(self.queues):
             name = "queue_%03d" % i
-            queues.append( Queue(
-                ConnAdapter(self.db_queue.conn.dsn,
+            queues.append(
+                Queue(ConnAdapter(self.db_queue.conn.dsn,
                     cursor_factory=psycopg2.extras.RealDictCursor),
-                self.db_queue.table,
-                name,
-                self.db_queue.chan is not None) )
+                self.db_queue.table, name)
+            )
             stacks[name] = []
 
         enqueuers = []

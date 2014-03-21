@@ -1,15 +1,20 @@
 import os
 
 Root = os.path.dirname(__file__)
-CreateTable = open(os.path.join(Root, 'sql', 'create_table.sql'), 'rb').read()
-DropSqlFunctions = open(os.path.join(Root, 'sql', 'drop_ddl.sql'), 'rb').read()
+SqlFunctions = os.path.join(Root, 'sql', 'ddl.sql')
+CreateTable = os.path.join(Root, 'sql', 'create_table.sql')
+DropSqlFunctions = os.path.join(Root, 'sql', 'drop_ddl.sql')
 
 def create(conn, table, columns, close=False):
-    conn.execute(CreateTable % {'table': table, 'columns': columns})
+    conn.execute(open(CreateTable).read()
+        % {'table': table, 'columns': columns})
+    conn.execute(open(SqlFunctions).read()
+        % {'table': table})
     if close:
         conn.close()
 
 def drop(conn, table, close=False):
-    conn.execute(DropSqlFunctions % {'table': table})
+    conn.execute(open(DropSqlFunctions).read()
+        % {'table': table})
     if close:
         conn.close()
