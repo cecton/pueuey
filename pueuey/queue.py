@@ -1,4 +1,5 @@
 import os
+import itertools
 import psycopg2
 
 import setup
@@ -7,23 +8,18 @@ __all__ = ['Queue']
 
 
 class Queue(object):
-    def __init__(self, conn, table, name, notify='default'):
-        if notify == 'default':
-            notify = os.environ.get('QC_LISTENING_WORKER', True)
-        self.conn = conn
-        self.table = table
-        self.name = name
-        self.chan = (name if notify else None)
+    def __init__(self, conn, table, name):
+        self.conn, self.table, self.name = conn, table, name
 
     def enqueue(self, **row):
-        #TODO: convert dict values who are actual dicts to JSON?
         row = dict(row, q_name=self.name)
         curs = self.conn.cursor(cursor_factory=psycopg2.extensions.cursor)
         curs.execute(
-            'INSERT INTO "%s" (%s)' % (self.table, ",".join(row.keys()))
-            +" VALUES ("+",".join('%s' for r in row)+") RETURNING id", row.values())
-        if self.chan: self.conn.notify(self.chan)
-        return curs.fetchone()[0]
+            'INSERT INTO "%s" (%s) VALUES (%s) RETURNING id'
+            % (self.table, ",".join(row.keys()),
+               ",".join(itertools.repeat('%s', len(row)))),
+            row.values())
+        return curs.fetchone()[0] if curs.rowcount else None
 
     def lock(self, top_bound=None, columns=None):
         if top_bound is None:

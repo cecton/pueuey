@@ -65,10 +65,6 @@ class ConnBaseTest(unittest.TestCase):
         self._createdb()
         self.conn = ConnAdapter(dbname=self.dbname,
             cursor_factory=self.cursor_factory, **self.address)
-        curs = self.conn.execute(
-            "SELECT 1 FROM pg_language WHERE lanname = 'plpgsql'")
-        if not curs.fetchone():
-            self.conn.execute("CREATE LANGUAGE plpgsql")
         setup.create(self.conn, self.table,
             "method varchar(255), args text")
         self.addCleanup(self._cleanup)
