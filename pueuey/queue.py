@@ -33,6 +33,10 @@ class Queue(object):
             [self.name, top_bound])
         return curs.fetchone()
 
+    def unlock(self, id):
+        return self.conn.execute(
+            'UPDATE "%s" SET locked_at = NULL WHERE id = %%s' % self.table, id)
+
     def delete(self, id):
         return self.conn.execute(
             'DELETE FROM "%s" WHERE id = %d' % (self.table, id))
