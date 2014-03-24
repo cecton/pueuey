@@ -2,7 +2,9 @@ import os
 import sys
 import itertools
 import datetime
+import logging
 import psycopg2
+import psycopg2.extras
 import json
 
 import setup
@@ -10,15 +12,16 @@ import setup
 __all__ = ['Queue']
 
 
-DEBUG = bool(os.environ.get('DEBUG', ''))
+_logger = logging.getLogger(__name__)
 
 class Queue(object):
-    def __init__(self, conn, name, topbound=None):
+    def __init__(self, conn, name, top_bound=None):
+        assert isinstance(conn, psycopg2._psycopg.connection)
         self.conn, self.name = conn, name
-        if topbound is None:
-            self.topbound = os.environ.get('QC_TOP_BOUND', 9)
+        if top_bound is None:
+            self.top_bound = os.environ.get('QC_TOP_BOUND', 9)
         else:
-            self.top_bound = topbound
+            self.top_bound = top_bound
 
     def enqueue(self, method, args):
         args = json.dumps(args)
@@ -30,7 +33,7 @@ class Queue(object):
 
     def lock(self, top_bound=None):
         if top_bound is None:
-            top_bound = self.topbound
+            top_bound = self.top_bound
         curs = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         curs.execute(
             "SELECT * FROM lock_head(%s, %s)", [self.name, top_bound])
@@ -39,11 +42,11 @@ class Queue(object):
         job = curs.fetchone()
         # NOTE: JSON in args is parsed automatically
         #       timestamptz columns are converted automatically to datetime
-        if job['created_at'] and DEBUG:
+        if job['created_at']:
             now = datetime.datetime.now(job['created_at'].tzinfo)
             ttl = now - job['created_at']
-            sys.stdout.write("measure#qc.time-to-lock=#%sms source=#%s\n"
-                % (int(ttl.microseconds / 1000), self.name))
+            logging.info("measure#qc.time-to-lock=%sms source=%s"
+                         % (int(ttl.microseconds / 1000), self.name))
         return job
 
     def unlock(self, id):
