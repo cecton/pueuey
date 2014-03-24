@@ -45,9 +45,7 @@ class ConnBaseTest(unittest.TestCase):
     q_name = 'default'
 
     def _connect(self, **kwargs):
-        username = kwargs.pop('username', None)
-        return ConnAdapter(**dict(kwargs,
-            database=self.dbname, user=username))
+        return ConnAdapter(**dict(kwargs, dbname=self.dbname))
 
     def _createdb(self):
         run(self.createdb, self.dbname, **self.address)
