@@ -1,3 +1,3 @@
-DROP FUNCTION IF EXISTS lock_head_%(table)s(tname varchar);
-DROP FUNCTION IF EXISTS lock_head_%(table)s(q_name varchar, top_boundary integer);
-DROP TABLE IF EXISTS %(table)s;
+DROP FUNCTION IF EXISTS lock_head(tname varchar);
+DROP FUNCTION IF EXISTS lock_head(q_name varchar, top_boundary integer);
+DROP FUNCTION IF EXISTS queue_classic_notify() cascade;

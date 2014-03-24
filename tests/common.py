@@ -42,7 +42,6 @@ class ConnBaseTest(unittest.TestCase):
     createdb = 'createdb'
     dropdb = 'dropdb'
     cursor_factory = None
-    table = 'queue_classic_jobs'
     q_name = 'default'
 
     def _connect(self, **kwargs):
@@ -57,7 +56,7 @@ class ConnBaseTest(unittest.TestCase):
         run(self.dropdb, self.dbname, **self.address)
 
     def _cleanup(self):
-        setup.drop(self.conn, self.table, close=True)
+        setup.drop(self.conn, close=True)
         self._dropdb()
 
     def setUp(self):
@@ -65,7 +64,6 @@ class ConnBaseTest(unittest.TestCase):
         self._createdb()
         self.conn = ConnAdapter(dbname=self.dbname,
             cursor_factory=self.cursor_factory, **self.address)
-        setup.create(self.conn, self.table,
-            "method varchar(255), args text")
+        setup.create(self.conn)
         self.addCleanup(self._cleanup)
-        self.db_queue = Queue(self.conn, self.table, self.q_name)
+        self.db_queue = Queue(self.conn, self.q_name)

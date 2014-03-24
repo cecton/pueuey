@@ -13,10 +13,8 @@ class ConcurrentClient(threading.Thread):
         super(ConcurrentClient, self).__init__()
 
     def connect(self):
-        self.queue = \
-            Queue(ConnAdapter(self.base_queue.conn.dsn,
-                cursor_factory=psycopg2.extras.RealDictCursor),
-            self.base_queue.table,
+        self.queue = Queue(
+            ConnAdapter(self.base_queue.conn.dsn),
             self.base_queue.name)
 
 class ConcurrentLock(ConcurrentClient):
@@ -30,17 +28,15 @@ class ConcurrentLock(ConcurrentClient):
         self.error = None
         self.connect()
         with self.lock:
-            got = self.queue.lock(columns=['id', 'method', 'args'])
+            got = self.queue.lock()
             if got is None:
                 self.error = "Can't lock a new job!"
                 return
             try:
-                id = got.pop('id')
-                i = self.stack.index(got)
-                self.stack.pop(i)
-                self.queue.delete(id)
+                self.stack.remove((got['method'], got['args']))
+                self.queue.delete(got['id'])
             except ValueError:
-                self.error = "Expected to find %s, in %s" % (got, self.stack)
+                self.error = "can not find %s in stack" % got
 
 class ConcurrentEnqueue(ConcurrentClient):
     def __init__(self, queue, job):
@@ -50,8 +46,8 @@ class ConcurrentEnqueue(ConcurrentClient):
     def run(self):
         try:
             self.connect()
-            self.queue.enqueue(**self.job)
-        except BaseException, e:
+            self.queue.enqueue(*self.job)
+        except Exception, e:
             self.error = e
 
 
@@ -66,43 +62,38 @@ class QueueTest(ConnBaseTest):
             self.assertTrue(self.db_queue.lock() is None)
             job = {
                 'method' : 'test_method_%03d' % i,
-                'args' : 'test_args_%03d' % i,
+                'args' : [{'1': 'test_args_%03d' % i}],
             }
-            self.db_queue.enqueue(**job)
-            got = self.db_queue.lock(columns=['id', 'method', 'args'])
-            job_id = got.pop('id')
-            self.assertIsNotNone(got, "Can't pop on queue!")
-            self.assertEqual(got, job)
-            self.db_queue.delete(job_id)
+            self.db_queue.enqueue(job['method'], job['args'])
+            got = self.db_queue.lock()
+            self.assertIsNotNone(got)
+            self.assertEqual(got['method'], job['method'])
+            self.assertEqual(got['args'], job['args'])
+            self.db_queue.delete(got['id'])
 
     def test_25_main_queue_multiple_connections(self):
         queues = []
         for i in range(self.queues):
-            queues.append(
-                Queue(ConnAdapter(self.db_queue.conn.dsn,
-                    cursor_factory=psycopg2.extras.RealDictCursor),
-                self.db_queue.table, self.db_queue.name)
-            )
+            queues.append(Queue(self._connect(), self.db_queue.name,))
 
         stack = []
         for i in range(self.tries):
             queue = queues[i % len(queues)]
             job = {
                 'method' : 'Kernel.puts',
-                'args' : '["Job %d executed"]' % i,
+                'args' : ["Job %d executed" % i],
             }
-            queue.enqueue(**job)
+            queue.enqueue(job['method'], job['args'])
             stack.append(job)
 
         for i in range(self.tries):
             queue = queues[i % len(queues)]
-            got = self.db_queue.lock(columns=['id','method','args'])
-            self.assertIsNotNone(got, "Can't pop on queue!")
+            got = self.db_queue.lock()
+            self.assertIsNotNone(got)
             try:
-                job_id = got.pop('id')
-                stack.remove(got)
+                stack.remove(dict(method=got['method'], args=got['args']))
                 # NOTE: problems appears if you don't delete the job
-                queue.delete(job_id)
+                queue.delete(got['id'])
             except ValueError:
                 self.fail("can't remove item %s from the stack" % repr(got))
 
@@ -110,31 +101,23 @@ class QueueTest(ConnBaseTest):
         queues = []
         for i in range(self.queues):
             name = "queue_%03d" % i
-            queues.append(
-                Queue(ConnAdapter(self.db_queue.conn.dsn,
-                    cursor_factory=psycopg2.extras.RealDictCursor),
-                self.db_queue.table, name)
-            )
+            queues.append(Queue(self._connect(), name))
 
         stack = []
         for i in range(self.tries):
             queue = queues[i % len(queues)]
-            job = {
-                'method' : 'Kernel.puts',
-                'args' : '["Job %d executed"]' % i,
-            }
-            queue.enqueue(**job)
+            job = ('Kernel.puts', ["Job %d executed" % i])
+            queue.enqueue(*job)
             stack.append(job)
 
         for i in range(self.tries):
             queue = queues[i % len(queues)]
-            got = queue.lock(columns=['id','method','args'])
+            got = queue.lock()
             self.assertIsNotNone(got)
             try:
-                job_id = got.pop('id')
-                stack.remove(got)
+                stack.remove((got['method'], got['args']))
                 # TODO: Problems appears if you don't delete the job
-                queue.delete(job_id)
+                queue.delete(got['id'])
             except ValueError:
                 self.fail("can't remove item %s in stack" % got)
 
@@ -143,10 +126,7 @@ class QueueTest(ConnBaseTest):
         lockers = []
         stack = []
         for i in range(self.tries):
-            job = {
-                'method' : 'test_method_%03d' % i,
-                'args' : 'test_args_%03d' % i,
-            }
+            job = ('test_method_%03d' % i, 'test_args_%03d' % i)
             stack.append(job)
             enqueuers.append(
                 ConcurrentEnqueue(self.db_queue, job))
@@ -178,21 +158,17 @@ class QueueTest(ConnBaseTest):
         stacks = {}
         for i in range(self.queues):
             name = "queue_%03d" % i
-            queues.append(
-                Queue(ConnAdapter(self.db_queue.conn.dsn,
-                    cursor_factory=psycopg2.extras.RealDictCursor),
-                self.db_queue.table, name)
-            )
+            queues.append(Queue(self._connect(), name))
             stacks[name] = []
 
         enqueuers = []
         lockers = []
         for i in range(self.tries):
             for queue in queues:
-                job = {
-                    'method' : '%s_test_method_%03d' % (queue.name, i),
-                    'args' : '%s_test_args_%03d' % (queue.name, i),
-                }
+                job = (
+                    '%s_test_method_%03d' % (queue.name, i),
+                    '%s_test_args_%03d' % (queue.name, i),
+                )
                 stacks[queue.name].append(job)
                 enqueuers.append(
                     ConcurrentEnqueue(queue, job))

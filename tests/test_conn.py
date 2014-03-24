@@ -9,21 +9,6 @@ __all__ = ['ConnTest']
 class ConnTest(ConnBaseTest):
     tries = 6
 
-    def test_25_execute(self):
-        for i in range(self.tries):
-            self.conn.execute(
-"INSERT INTO %s (q_name, method)" % self.table
-+" VALUES (%s, %s)",
-["name_%02d" % i, "method_%02d" % i])
-        for i in range(self.tries):
-            curs = self.conn.execute(
-"SELECT q_name, method FROM %s" % self.table
-+" WHERE q_name = %s AND method = %s",
-["name_%02d" % i, "method_%02d" % i])
-            for q_name, method in curs:
-                self.assertEqual(q_name, "name_%02d" % i)
-                self.assertEqual(method, "method_%02d" % i)
-
     def test_40_wait_for_notify(self):
         for try_index in range(self.tries):
             notifier = Notifier(self._connect(), 'test_chan', 0.1)

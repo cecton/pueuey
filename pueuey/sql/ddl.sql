@@ -3,8 +3,8 @@
 -- have identical columns to queue_classic_jobs.
 -- When QC supports queues with columns other than the default, we will have to change this.
 
-CREATE OR REPLACE FUNCTION lock_head_%(table)s(q_name varchar, top_boundary integer)
-RETURNS SETOF %(table)s AS $$
+CREATE OR REPLACE FUNCTION lock_head(q_name varchar, top_boundary integer)
+RETURNS SETOF queue_classic_jobs AS $$
 DECLARE
   unlocked bigint;
   relative_top integer;
@@ -15,7 +15,9 @@ BEGIN
   -- for more workers. Would love to see some optimization here...
 
   EXECUTE 'SELECT count(*) FROM '
-    || '(SELECT * FROM %(table)s WHERE q_name = '
+    || '(SELECT * FROM queue_classic_jobs '
+    || ' WHERE locked_at IS NULL'
+    || ' AND q_name = '
     || quote_literal(q_name)
     || ' LIMIT '
     || quote_literal(top_boundary)
@@ -31,7 +33,7 @@ BEGIN
 
   LOOP
     BEGIN
-      EXECUTE 'SELECT id FROM %(table)s '
+      EXECUTE 'SELECT id FROM queue_classic_jobs '
         || ' WHERE locked_at IS NULL'
         || ' AND q_name = '
         || quote_literal(q_name)
@@ -47,7 +49,7 @@ BEGIN
     END;
   END LOOP;
 
-  RETURN QUERY EXECUTE 'UPDATE %(table)s '
+  RETURN QUERY EXECUTE 'UPDATE queue_classic_jobs '
     || ' SET locked_at = (CURRENT_TIMESTAMP)'
     || ' WHERE id = $1'
     || ' AND locked_at is NULL'
@@ -58,9 +60,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION lock_head_%(table)s(tname varchar)
-RETURNS SETOF %(table)s AS $$
+CREATE OR REPLACE FUNCTION lock_head(tname varchar)
+RETURNS SETOF queue_classic_jobs AS $$
 BEGIN
-  RETURN QUERY EXECUTE 'SELECT * FROM lock_head_%(table)s($1,10)' USING tname;
+  RETURN QUERY EXECUTE 'SELECT * FROM lock_head($1,10)' USING tname;
 END;
 $$ LANGUAGE plpgsql;
