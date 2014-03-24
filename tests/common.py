@@ -64,4 +64,4 @@ class ConnBaseTest(unittest.TestCase):
             cursor_factory=self.cursor_factory, **self.address)
         setup.create(self.conn)
         self.addCleanup(self._cleanup)
-        self.db_queue = Queue(self.conn, self.q_name)
+        self.queue = Queue(self.conn, self.q_name)

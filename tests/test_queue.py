@@ -59,22 +59,22 @@ class QueueTest(ConnBaseTest):
 
     def test_20_main_queue(self):
         for i in range(self.tries):
-            self.assertTrue(self.db_queue.lock() is None)
+            self.assertTrue(self.queue.lock() is None)
             job = {
                 'method' : 'test_method_%03d' % i,
                 'args' : [{'1': 'test_args_%03d' % i}],
             }
-            self.db_queue.enqueue(job['method'], job['args'])
-            got = self.db_queue.lock()
+            self.queue.enqueue(job['method'], job['args'])
+            got = self.queue.lock()
             self.assertIsNotNone(got)
             self.assertEqual(got['method'], job['method'])
             self.assertEqual(got['args'], job['args'])
-            self.db_queue.delete(got['id'])
+            self.queue.delete(got['id'])
 
     def test_25_main_queue_multiple_connections(self):
         queues = []
         for i in range(self.queues):
-            queues.append(Queue(self._connect(), self.db_queue.name,))
+            queues.append(Queue(self._connect(), self.queue.name,))
 
         stack = []
         for i in range(self.tries):
@@ -88,7 +88,7 @@ class QueueTest(ConnBaseTest):
 
         for i in range(self.tries):
             queue = queues[i % len(queues)]
-            got = self.db_queue.lock()
+            got = self.queue.lock()
             self.assertIsNotNone(got)
             try:
                 stack.remove(dict(method=got['method'], args=got['args']))
@@ -129,9 +129,9 @@ class QueueTest(ConnBaseTest):
             job = ('test_method_%03d' % i, 'test_args_%03d' % i)
             stack.append(job)
             enqueuers.append(
-                ConcurrentEnqueue(self.db_queue, job))
+                ConcurrentEnqueue(self.queue, job))
             lockers.append(
-                ConcurrentLock(self.db_queue, stack))
+                ConcurrentLock(self.queue, stack))
 
         while enqueuers:
             enqueuers_row = enqueuers[:self.max_clients]
