@@ -1,5 +1,6 @@
 import os
 import threading
+import psycopg2
 import psycopg2.extras
 import unittest
 
@@ -14,7 +15,7 @@ class ConcurrentClient(threading.Thread):
 
     def connect(self):
         self.queue = Queue(
-            ConnAdapter(self.base_queue.conn.dsn),
+            psycopg2.connect(self.base_queue.conn.dsn),
             self.base_queue.name)
 
 class ConcurrentLock(ConcurrentClient):

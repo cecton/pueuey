@@ -3,6 +3,7 @@ import sys
 import datetime
 import importlib
 import logging
+import psycopg2
 
 from conn_adapter import ConnAdapter
 from queue import Queue
@@ -24,14 +25,14 @@ class Worker(object):
     # top_bound:: Offset to the head of the queue. 1 == strict FIFO.
     def __init__(self, fork_worker=None, wait_interval=None, connection=None,
                  q_name=None, q_names=None, top_bound=None):
-        assert isinstance(connection, ConnAdapter)
+        assert isinstance(connection, psycopg2._psycopg.connection)
         if fork_worker is None:
             fork_worker = bool(os.environ.get('QC_FORK_WORKER', ''))
         if wait_interval is None:
             wait_interval = int(os.environ.get('QC_LISTEN_TIME', '5'))
         self.fork_worker = fork_worker
         self.wait_interval = wait_interval
-        self.conn_adapter = connection
+        self.conn_adapter = ConnAdapter(connection)
         if q_name is None:
             q_name = os.environ.get('QUEUE', 'default')
         if q_names is None:
@@ -41,7 +42,7 @@ class Worker(object):
             else:
                 q_names = q_names.split(',')
         self.queues = self.__setup_queues(
-            self.conn_adapter, q_name, q_names, top_bound)
+            connection, q_name, q_names, top_bound)
         self.running = True
         _logger.info("worker_initialized")
 
@@ -153,6 +154,6 @@ class Worker(object):
     def log(self, data):
         _logger.info(data)
 
-    def __setup_queues(self, adapter, queue, queues, top_bound):
+    def __setup_queues(self, connection, queue, queues, top_bound):
         names = (queues if len(queues) > 0 else [queue])
-        return [Queue(adapter, name, top_bound) for name in names]
+        return [Queue(connection, name, top_bound) for name in names]

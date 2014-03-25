@@ -3,6 +3,7 @@ import io
 import threading
 import subprocess
 from time import sleep
+import psycopg2
 import unittest
 
 from pueuey import ConnAdapter, Queue, setup
@@ -21,22 +22,27 @@ def run(command, *a, **kw):
          for k, v in kw.items() if v is not None] +
         list(a), stderr=subprocess.DEVNULL, stdin=stdin)
 
+def connect(dbname, host=None, port=None, username=None, cursor_factory=None):
+    return psycopg2.connect(database=dbname,
+        host=host, port=port, user=username, cursor_factory=cursor_factory)
+
 class Notifier(threading.Thread):
-    def __init__(self, pg_conn, chan, delay):
+    def __init__(self, connection, chan, delay):
         super(Notifier, self).__init__()
-        self.pg_conn = pg_conn
-        self.chan = chan
-        self.delay = delay
+        self.connection, self.chan, self.delay = connection, chan, delay
+        self.connection.set_isolation_level(
+            psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
     def run(self):
         sleep(self.delay)
-        self.pg_conn.execute('NOTIFY "%s"' % self.chan)
+        curs = self.connection.cursor()
+        curs.execute('NOTIFY "%s"' % self.chan)
 
 class ConnBaseTest(unittest.TestCase):
     address = {
         'host' : 'localhost',
         'port' : 5432,
-        'user' : os.environ['USER'],
+        'username' : os.environ['USER'],
     }
     basename = 'test_pueuey'
     createdb = 'createdb'
@@ -44,8 +50,9 @@ class ConnBaseTest(unittest.TestCase):
     cursor_factory = None
     q_name = 'default'
 
-    def _connect(self, **kwargs):
-        return ConnAdapter(**dict(kwargs, dbname=self.dbname))
+    def _connect(self):
+        return connect(self.dbname,
+            **dict(self.address, cursor_factory=self.cursor_factory))
 
     def _createdb(self):
         run(self.createdb, self.dbname, **self.address)
@@ -60,8 +67,7 @@ class ConnBaseTest(unittest.TestCase):
     def setUp(self):
         self.dbname = "%s_%d" % (self.basename, id(self))
         self._createdb()
-        self.conn = ConnAdapter(dbname=self.dbname,
-            cursor_factory=self.cursor_factory, **self.address)
+        self.conn = self._connect()
         setup.create(self.conn)
         self.addCleanup(self._cleanup)
         self.queue = Queue(self.conn, self.q_name)
