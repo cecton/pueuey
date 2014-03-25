@@ -17,11 +17,11 @@ _logger = logging.getLogger(__name__)
 class Queue(object):
     def __init__(self, conn, name, top_bound=None):
         assert isinstance(conn, psycopg2._psycopg.connection)
-        self.conn, self.name = conn, name
         if top_bound is None:
-            self.top_bound = os.environ.get('QC_TOP_BOUND', 9)
-        else:
-            self.top_bound = top_bound
+            top_bound = os.environ.get('QC_TOP_BOUND', 9)
+        self.conn, self.name, self.top_bound = conn, name, top_bound
+        self.conn.set_isolation_level(
+            psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
     def enqueue(self, method, args):
         args = json.dumps(args)
