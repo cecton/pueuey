@@ -136,7 +136,11 @@ class Worker(object):
     def call(self, job):
         args = job['args']
         receiver_str, _, message = job['method'].rpartition('.')
-        module = importlib.import_module(receiver_str)
+        if receiver_str:
+            module = importlib.import_module(receiver_str, self.__module__)
+        else:
+            import __main__
+            module = __main__
         getattr(module, message)(*args)
 
     # This method will be called when an exception
