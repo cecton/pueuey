@@ -61,7 +61,8 @@ class ConnBaseTest(unittest.TestCase):
         run(self.dropdb, self.dbname, **self.address)
 
     def _cleanup(self):
-        setup.drop(self.conn, close=True)
+        setup.drop(self.conn)
+        self.conn.close()
         self._dropdb()
 
     def setUp(self):
