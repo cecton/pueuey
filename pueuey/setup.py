@@ -6,12 +6,14 @@ CreateTable = os.path.join(Root, 'sql', 'create_table.sql')
 DropSqlFunctions = os.path.join(Root, 'sql', 'drop_ddl.sql')
 
 def create(conn, close=False):
-    conn.execute(open(CreateTable).read())
-    conn.execute(open(SqlFunctions).read())
+    curs = conn.cursor()
+    curs.execute(open(CreateTable).read())
+    curs.execute(open(SqlFunctions).read())
     if close:
         conn.close()
 
 def drop(conn, close=False):
-    conn.execute(open(DropSqlFunctions).read())
+    curs = conn.cursor()
+    curs.execute(open(DropSqlFunctions).read())
     if close:
         conn.close()

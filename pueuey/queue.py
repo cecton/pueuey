@@ -50,16 +50,19 @@ class Queue(object):
         return job
 
     def unlock(self, id):
-        return self.conn.execute(
+        curs = self.conn.cursor()
+        return curs.execute(
             'UPDATE "queue_classic_jobs" '
             'SET locked_at = NULL WHERE id = %s', [id])
 
     def delete(self, id):
-        return self.conn.execute(
+        curs = self.conn.cursor()
+        return curs.execute(
             'DELETE FROM "queue_classic_jobs" WHERE id = %s', [id])
 
     def delete_all(self):
-        return self.conn.execute(
+        curs = self.conn.cursor()
+        return curs.execute(
             'DELETE FROM "queue_classic_jobs" WHERE q_name = %s', [self.name])
 
     def count(self):
