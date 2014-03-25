@@ -1,5 +1,8 @@
+import os
+import re
 import psycopg2
 import select
+import urlparse
 
 __all__ = ['ConnAdapter']
 
@@ -10,14 +13,17 @@ class ConnAdapter(object):
             % (self.__class__.__name__, id(self),
                repr(self.connection.dsn), self.connection.closed)
 
-    def __init__(self, connection):
-        assert isinstance(connection, psycopg2._psycopg.connection)
-        self.connection = connection
+    def __init__(self, connection=None):
+        self.connection = (
+            self.__establish_new()
+            if connection is None
+            else self.__validate(connection)
+        )
         self.connection.set_isolation_level(
             psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
     def disconnect(self):
-        return self.close()
+        return self.connection.close()
 
     def execute(self, *args):
         curs = self.connection.cursor()
@@ -44,3 +50,35 @@ class ConnAdapter(object):
             if self.connection.notifies:
                 return self.connection.notifies.pop()
         return None
+
+    def __validate(self, connection):
+        assert isinstance(connection, psycopg2._psycopg.connection), \
+            "connection must be an instance of " \
+            "psycopg2._psycopg.connection, but was " + repr(type(connection))
+        return connection
+
+    def __establish_new(self):
+        conn = psycopg2.connect(**self.__normalize_db_url(self.__db_url()))
+        curs = conn.cursor()
+        curs.execute("SET application_name = %s",
+            [os.environ.get('QC_APP_NAME', 'queue_classic')])
+        return conn
+
+    def __normalize_db_url(self, url):
+        host = url.hostname
+        if host:
+            host = re.sub(r"%2F", "/", host, flags=re.I)
+
+        return {
+            'host': host, # host or percent-encoded socket path
+            'port': url.port,
+            'database': re.sub(r"/", "", url.path),
+            'username' : url.username,
+            'password' : url.password,
+        }
+
+    def __db_url(self):
+        url = os.environ.get('QC_DATABASE_URL', os.environ.get('DATABASE_URL'))
+        if not url:
+            raise ValueError("missing QC_DATABASE_URL or DATABASE_URL")
+        return urlparse.urlparse(url)
