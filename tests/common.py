@@ -71,4 +71,5 @@ class ConnBaseTest(unittest.TestCase):
         self.conn = self._connect()
         setup.create(self.conn)
         self.addCleanup(self._cleanup)
-        self.queue = Queue(self.conn, self.q_name)
+        self.queue = Queue(self.q_name)
+        self.queue.conn_adapter = ConnAdapter(self.conn)

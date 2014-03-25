@@ -14,9 +14,9 @@ class ConcurrentClient(threading.Thread):
         super(ConcurrentClient, self).__init__()
 
     def connect(self):
-        self.queue = Queue(
-            psycopg2.connect(self.base_queue.conn.dsn),
-            self.base_queue.name)
+        self.queue = Queue(self.base_queue.name)
+        self.queue.conn_adapter = ConnAdapter(
+            psycopg2.connect(self.base_queue.conn_adapter.connection.dsn))
 
 class ConcurrentLock(ConcurrentClient):
     lock = threading.RLock()
@@ -75,7 +75,9 @@ class QueueTest(ConnBaseTest):
     def test_25_main_queue_multiple_connections(self):
         queues = []
         for i in range(self.queues):
-            queues.append(Queue(self._connect(), self.queue.name,))
+            queue = Queue(self.queue.name)
+            queue.conn_adapter = ConnAdapter(self._connect())
+            queues.append(queue)
 
         stack = []
         for i in range(self.tries):
@@ -101,8 +103,9 @@ class QueueTest(ConnBaseTest):
     def test_30_multiple_queue_multiple_connections(self):
         queues = []
         for i in range(self.queues):
-            name = "queue_%03d" % i
-            queues.append(Queue(self._connect(), name))
+            queue = Queue("queue_%03d" % i)
+            queue.conn_adapter = ConnAdapter(self._connect())
+            queues.append(queue)
 
         stack = []
         for i in range(self.tries):
@@ -158,9 +161,10 @@ class QueueTest(ConnBaseTest):
         queues = []
         stacks = {}
         for i in range(self.queues):
-            name = "queue_%03d" % i
-            queues.append(Queue(self._connect(), name))
-            stacks[name] = []
+            queue = Queue("queue_%03d" % i)
+            queue.conn_adapter = ConnAdapter(self._connect())
+            queues.append(queue)
+            stacks[queue.name] = []
 
         enqueuers = []
         lockers = []
