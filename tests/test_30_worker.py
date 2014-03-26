@@ -21,6 +21,7 @@ class WorkerTest(ConnBaseTest):
     q_name = 'test_worker'
     concurrent_workers = 10
     tasks = 100
+    tries = 100
 
     def setUp(self):
         super(WorkerTest, self).setUp()
@@ -53,13 +54,11 @@ class WorkerTest(ConnBaseTest):
     def test_00_fetch_something(self):
         global reg_args
         worker = Worker(connection=self._connect(), q_name=self.q_name)
-        self.queue.enqueue("test_30_worker.register", ["foo", "bar"])
-        for i in range(5):
+        for i in range(self.tries):
+            self.queue.enqueue("test_30_worker.register", ["foo", "bar"])
             worker.work()
-            if reg_args == ("foo", "bar"):
-                break
-        else:
-            self.fail()
+            self.assertEqual(reg_args, ("foo", "bar"))
+            reg_args = None
 
     def test_10_one_worker_success(self):
         self._invoke_worker()
