@@ -2,14 +2,13 @@ import os
 import sys
 import datetime
 import importlib
-import logging
 import psycopg2
 
+from log import log, log_yield, _logger
 from conn_adapter import ConnAdapter
 from queue import Queue
 
 __all__ = ['Worker']
-_logger = logging.getLogger(__name__)
 
 
 # A Worker object can process jobs from one or many queues.
@@ -43,7 +42,7 @@ class Worker(object):
         self.queues = self.__setup_queues(
             self.conn_adapter, q_name, q_names, top_bound)
         self.running = True
-        _logger.info("worker_initialized")
+        log(at="worker_initialized")
 
     # Commences the working of jobs.
     # start() spins on @running -which is initialized as true.
@@ -76,7 +75,7 @@ class Worker(object):
             self.work()
             os._exit(0)
         else:
-            _logger.info("fork pid=" + str(cpid))
+            log(at="fork", pid=str(cpid))
             os.waitpid(cpid, 0)
 
     # Blocks on locking a job, and once a job is locked,
@@ -84,7 +83,7 @@ class Worker(object):
     def work(self):
         queue, job = self.lock_job()
         if queue and job:
-            _logger.info("work job=" + str(job['id']))
+            log(at="work", job=str(job['id']))
             self.process(queue, job)
 
     # Attempt to lock a job in the queue's table.
@@ -95,7 +94,7 @@ class Worker(object):
     # job's row. It is the caller's responsibility to delete the job row
     # from the table when the job is complete.
     def lock_job(self):
-        _logger.info("lock_job")
+        log(at="lock_job")
         job = None
         while self.running:
             for queue in self.queues:
@@ -152,10 +151,10 @@ class Worker(object):
     # your worker is forking and you need to
     # re-establish database connections
     def setup_child(self):
-        _logger.info("setup_child")
+        log(at="setup_child")
 
     def log(self, data):
-        _logger.info(data)
+        log(data)
 
     def __setup_queues(self, conn_adapter, queue, queues, top_bound):
         names = (queues if len(queues) > 0 else [queue])

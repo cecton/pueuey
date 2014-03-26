@@ -4,6 +4,8 @@ import psycopg2
 import select
 import urlparse
 
+from log import log
+
 __all__ = ['ConnAdapter']
 
 
@@ -23,25 +25,37 @@ class ConnAdapter(object):
             psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
     def disconnect(self):
-        return self.connection.close()
+        try:
+            return self.connection.close()
+        except Exception, e:
+            log(at='disconnect', error=repr(e))
+            raise
 
     def execute(self, *args):
-        curs = self.connection.cursor()
-        curs.execute(*args)
-        return curs
+        log(at='exec_sql', sql=repr(args[0]))
+        try:
+            curs = self.connection.cursor()
+            curs.execute(*args)
+            return curs
+        except Exception, e:
+            log(error=repr(e))
+            raise
 
     def wait(self, time, *channels):
+        curs = self.connection.cursor()
         listen_cmds = ['LISTEN "%s"' % c for c in channels]
-        self.execute(';'.join(listen_cmds))
+        curs.execute(';'.join(listen_cmds))
         channel = self.__wait_for_notify(time)
         unlisten_cmds = ['UNLISTEN "%s"' % c for c in channels]
-        self.execute(';'.join(unlisten_cmds))
+        curs.execute(';'.join(unlisten_cmds))
         self.__drain_notify()
         return channel
 
     def __drain_notify(self):
         notifies = list(self.connection.notifies)
-        del self.connection.notifies[:]
+        if notifies:
+            log(at='drain_notifications')
+            del self.connection.notifies[:]
         return notifies
 
     def __wait_for_notify(self, t):
@@ -58,7 +72,12 @@ class ConnAdapter(object):
         return connection
 
     def __establish_new(self):
-        conn = psycopg2.connect(**self.__normalize_db_url(self.__db_url()))
+        log(at='establish_conn')
+        try:
+            conn = psycopg2.connect(**self.__normalize_db_url(self.__db_url()))
+        except Exception, e:
+            log(error=repr(e))
+            raise
         curs = conn.cursor()
         curs.execute("SET application_name = %s",
             [os.environ.get('QC_APP_NAME', 'queue_classic')])
