@@ -29,7 +29,7 @@ class WorkerTest(ConnBaseTest):
 
     def _cleanup(self):
         for process in self.running_workers:
-            process.kill()
+            process.terminate()
             process.wait()
         shutil.rmtree(self.working_directory)
         super(WorkerTest, self)._cleanup()

@@ -3,6 +3,7 @@
 import argparse
 import os
 import sys
+import errno
 import time
 import psycopg2
 import logging
@@ -67,7 +68,11 @@ def run(args):
 
     worker = MyWorker(args.working_directory,
         connection=conn, q_name=args.queue, fork_worker=args.forkworker)
-    worker.start()
+    try:
+        worker.start()
+    except OSError, exc:
+        if exc.errno == errno.EINTR:
+            sys.exit(0)
     sys.exit(1)
 
 if __name__ == '__main__':
