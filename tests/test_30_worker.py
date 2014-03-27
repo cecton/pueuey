@@ -3,7 +3,7 @@ import time
 import random
 import tempfile
 import shutil
-import unittest
+import unittest2
 import subprocess
 
 from pueuey import Queue, ConnAdapter, Worker
@@ -65,7 +65,7 @@ class WorkerTest(ConnBaseTest):
         self.queue.enqueue("example_worker.touch", ["foo"])
         self._check_exists("foo")
 
-    @unittest.expectedFailure
+    @unittest2.expectedFailure
     def test_15_one_worker_failure(self):
         self._invoke_worker()
         self.queue.enqueue("example_worker.touch", ["foo"])

@@ -2,7 +2,7 @@ import os
 import threading
 import psycopg2
 import psycopg2.extras
-import unittest
+import unittest2
 
 from pueuey import Queue, ConnAdapter
 from common import Notifier, ConnBaseTest

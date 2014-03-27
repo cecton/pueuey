@@ -4,7 +4,7 @@ import threading
 import subprocess
 from time import sleep
 import psycopg2
-import unittest
+import unittest2
 
 from pueuey import ConnAdapter, Queue, setup
 
@@ -16,7 +16,7 @@ __all__ = ['Notifier', 'ConnBaseTest']
 
 def run(command, *a, **kw):
     stdin = kw.pop('stdin', None)
-    return subprocess.check_output(
+    return subprocess.check_call(
         [command] +
         [(("-" if len(k) == 1 else "--") + str(k) + "=" + str(v))
          for k, v in kw.items() if v is not None] +
@@ -38,7 +38,7 @@ class Notifier(threading.Thread):
         curs = self.connection.cursor()
         curs.execute('NOTIFY "%s"' % self.chan)
 
-class ConnBaseTest(unittest.TestCase):
+class ConnBaseTest(unittest2.TestCase):
     address = {
         'host' : 'localhost',
         'port' : 5432,
