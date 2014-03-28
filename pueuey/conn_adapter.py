@@ -34,9 +34,8 @@ class ConnAdapter(object):
     def execute(self, *args):
         log(at='exec_sql', sql=repr(args[0]))
         try:
-            curs = self.connection.cursor()
-            curs.execute(*args)
-            return curs
+            with self.connection.cursor() as curs:
+                curs.execute(*args)
         except Exception, e:
             log(error=repr(e))
             raise
@@ -78,9 +77,9 @@ class ConnAdapter(object):
         except Exception, e:
             log(error=repr(e))
             raise
-        curs = conn.cursor()
-        curs.execute("SET application_name = %s",
-            [os.environ.get('QC_APP_NAME', 'queue_classic')])
+        with conn.cursor() as curs:
+            curs.execute("SET application_name = %s",
+                [os.environ.get('QC_APP_NAME', 'queue_classic')])
         return conn
 
     def __normalize_db_url(self, url):
