@@ -66,6 +66,10 @@ def run(args):
     else:
         conn = None
 
+    if args.forkworker:
+        import signal
+        signal.signal(signal.SIGTERM, lambda *a: os.kill(0, signal.SIGTERM))
+
     worker = MyWorker(args.working_directory,
         connection=conn, q_name=args.queue, fork_worker=args.forkworker)
     try:
@@ -73,6 +77,8 @@ def run(args):
     except OSError, exc:
         if exc.errno == errno.EINTR:
             sys.exit(0)
+        else:
+            raise
     sys.exit(1)
 
 if __name__ == '__main__':
