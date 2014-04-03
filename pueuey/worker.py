@@ -1,6 +1,5 @@
 import os
 import sys
-import signal
 import datetime
 import importlib
 import psycopg2
@@ -73,15 +72,17 @@ class Worker(object):
         cpid = os.fork()
         if cpid == 0:
             self.setup_child()
-            self.work()
-            os._exit(0)
+            try:
+                self.work()
+            except:
+                # prevent going up in the stack
+                os._exit(1)
+            else:
+                # prevent going up in the stack
+                os._exit(0)
         else:
-            previous_handler = signal.getsignal(signal.SIGTERM)
-            signal.signal(signal.SIGTERM,
-                lambda *a: os.kill(cpid, signal.SIGTERM))
             log(at="fork", pid=str(cpid))
             os.waitpid(cpid, 0)
-            signal.signal(signal.SIGTERM, previous_handler)
 
     # Blocks on locking a job, and once a job is locked,
     # it will process the job.
