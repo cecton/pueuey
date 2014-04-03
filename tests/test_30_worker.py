@@ -89,7 +89,6 @@ class WorkerTest(ConnBaseTest):
                 ["job_%03d" % i, random.random() * 2.0])
         for i in range(self.tasks):
             self._check_exists("job_%03d" % i, retry=5)
-        time.sleep(2) # wait the maximum delay to make sure all jobs have ended
         self.assertEqual(self.queue.count(), 0)
 
     def test_30_lot_of_workers_no_delay_using_fork(self):
@@ -109,5 +108,4 @@ class WorkerTest(ConnBaseTest):
                 ["job_%03d" % i, random.random() * 2.0])
         for i in range(self.tasks):
             self._check_exists("job_%03d" % i, retry=5)
-        time.sleep(2) # wait the maximum delay to make sure all jobs have ended
         self.assertEqual(self.queue.count(), 0)

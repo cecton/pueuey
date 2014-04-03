@@ -13,10 +13,10 @@ from pueuey import Worker
 
 
 def touch(name, sleep=0):
+    time.sleep(sleep)
     logging.info("touch `%s'", name)
     fh = open(name, 'wb')
     fh.close()
-    time.sleep(sleep)
 
 class MyWorker(Worker):
     def __init__(self, working_directory, **kwargs):
