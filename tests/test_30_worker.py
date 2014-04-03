@@ -85,7 +85,7 @@ class WorkerTest(ConnBaseTest):
             self._invoke_worker()
         for i in range(self.tasks):
             self.queue.enqueue("example_worker.touch",
-                ["job_%03d" % i, random.randint(0, 2)])
+                ["job_%03d" % i, random.random() * 2.0])
         for i in range(self.tasks):
             self._check_exists("job_%03d" % i, retry=5)
         time.sleep(2) # wait the maximum delay to make sure all jobs have ended
@@ -105,7 +105,7 @@ class WorkerTest(ConnBaseTest):
             self._invoke_worker(fork=True)
         for i in range(self.tasks):
             self.queue.enqueue("example_worker.touch",
-                ["job_%03d" % i, random.randint(0, 2)])
+                ["job_%03d" % i, random.random() * 2.0])
         for i in range(self.tasks):
             self._check_exists("job_%03d" % i, retry=5)
         time.sleep(2) # wait the maximum delay to make sure all jobs have ended
