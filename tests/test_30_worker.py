@@ -39,7 +39,8 @@ class WorkerTest(ConnBaseTest):
         p = subprocess.Popen(
             [example_worker.__file__, self.working_directory,
              '--dbname=' + self.dbname, '--queue=' + self.q_name] +
-            (['--forkworker'] if fork else []))
+            (['--forkworker'] if fork else []),
+            preexec_fn=os.setpgrp)
         self.running_workers.append(p)
         return p
 
