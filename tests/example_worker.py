@@ -69,6 +69,7 @@ def run(args):
     if args.forkworker:
         import signal
         signal.signal(signal.SIGTERM, lambda *a: os.kill(0, signal.SIGTERM))
+        signal.signal(signal.SIGQUIT, lambda *a: os.kill(0, signal.SIGQUIT))
 
     worker = MyWorker(args.working_directory,
         connection=conn, q_name=args.queue, fork_worker=args.forkworker)
