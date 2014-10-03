@@ -71,8 +71,8 @@ class Worker(object):
     def fork_and_work(self):
         cpid = os.fork()
         if cpid == 0:
-            self.setup_child()
             try:
+                self.setup_child()
                 self.work()
             except:
                 # prevent going up in the stack
